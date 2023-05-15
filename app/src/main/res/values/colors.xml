@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#f40045</color>
+    <color name="colorPrimaryDark">#a6002f</color>
+    <color name="colorAccent">#f95b87</color>
+    <color name="year">#999999</color>
+    <color name="title">#222222</color>
+    <color name="colorRed">#FF0000</color>
+    <color name="colorWhite">#ffffff</color>
+    <color name="colorBlack">#000000</color>
+    <color name="cardview_initial_background">#71C3DE</color>
+
+    <color name="colorPrimarya">#f40045</color>
+    <color name="colorPrimaryDarka">#a6002f</color>
+    <color name="colorAccenta">#f95b87</color>
+</resources>
