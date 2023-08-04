@@ -41,7 +41,7 @@ class FragmentViewPager : Fragment() {
 
     private lateinit var settingsViewModel: SettingsViewModel
     private val adapter by lazy { VPagerAdapter(requireContext(), zeker_list, this, Ffont) }
-
+//ss
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         argsId = FragmentViewPagerArgs.fromBundle(requireArguments()).typeID
