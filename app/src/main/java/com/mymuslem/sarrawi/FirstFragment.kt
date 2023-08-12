@@ -106,6 +106,8 @@ class FirstFragment : Fragment(), SearchView.OnQueryTextListener  {
         // تحديد الخط المحدد وتغيير الخط عند الحاجة
         specifyFont()
 
+
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
