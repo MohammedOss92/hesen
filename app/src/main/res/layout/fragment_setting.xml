@@ -80,7 +80,7 @@
                 app:srcCompat="@drawable/separator"
                 android:focusable="false" />
 
-            <Switch
+            <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/nightModeSwitch"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -90,6 +90,21 @@
             <ImageView
 
                 android:id="@+id/shape3"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                app:srcCompat="@drawable/separator"
+                android:focusable="false" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/noti"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="تفعيل الاشعارات" />
+
+            <ImageView
+
+                android:id="@+id/shape4"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
                 app:srcCompat="@drawable/separator"
