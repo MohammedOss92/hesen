@@ -52,5 +52,9 @@
         android:id="@+id/fragmentSetting"
         android:name="com.mymuslem.sarrawi.FragmentSetting"
         android:label="fragment_setting"
-        tools:layout="@layout/fragment_setting" />
+        tools:layout="@layout/fragment_setting" >
+        <action
+            android:id="@+id/action_fragmentSetting_to_firsFragment"
+            app:destination="@id/firsFragment" />
+    </fragment>
 </navigation>

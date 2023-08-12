@@ -1,7 +1,13 @@
 package com.mymuslem.sarrawi
 
+import android.Manifest
+import androidx.appcompat.widget.SwitchCompat
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.graphics.Typeface
 import android.os.Bundle
 import android.preference.PreferenceManager
@@ -11,13 +17,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.NavDeepLinkBuilder
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.mymuslem.sarrawi.adapter.TypefaceChangeListener
 import com.mymuslem.sarrawi.adapter.ZekerTypes_Adapter
 import com.mymuslem.sarrawi.db.viewModel.SettingsViewModel
-
+import com.mymuslem.sarrawi.notification.AlarmReceiverAM
+import com.mymuslem.sarrawi.notification.AlarmReceiverPM
+import java.util.*
 
 
 class FragmentSetting : Fragment() {
@@ -27,7 +39,10 @@ class FragmentSetting : Fragment() {
     private lateinit var tv_Size: TextView
     private lateinit var tv_Type: TextView
     private lateinit var spFont: Spinner
-    private lateinit var nightModeSwitch: Switch
+    private lateinit var nightModeSwitch: SwitchCompat
+    private lateinit var notifi: SwitchCompat
+    private val NOTIFICATION_PERMISSION_CODE = 100
+
 
     private val font = arrayOf(
         "الخط الافتراضي",
@@ -55,7 +70,7 @@ class FragmentSetting : Fragment() {
 
     // Shared Preferences
     private val sharedPref by lazy { requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE) }
-
+    private lateinit var sharedPreferences: SharedPreferences
 
 
 
@@ -64,8 +79,11 @@ class FragmentSetting : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val rootview = inflater.inflate(R.layout.fragment_setting, container, false)
-
+        sharedPreferences = requireActivity().getSharedPreferences("MyPrefs",
+            AppCompatActivity.MODE_PRIVATE
+        )
         val sh_pref = SharedPref(requireContext())
+
 
         // Initialize Views
         tvSeekBarValue = rootview.findViewById(R.id.tvSeekBarValue)
@@ -73,6 +91,8 @@ class FragmentSetting : Fragment() {
         spFont = rootview.findViewById(R.id.fontTypeSpinner)
         tv_Type = rootview.findViewById(R.id.fontTypeLabel)
         nightModeSwitch = rootview.findViewById(R.id.nightModeSwitch)
+        notifi = rootview.findViewById(R.id.noti)
+
         nightModeSwitch.isChecked = sh_pref.getThemeStatePref()
 
         // Initialize ViewModel
@@ -168,6 +188,23 @@ class FragmentSetting : Fragment() {
             }
         }
 
+        notifi.isChecked = sharedPreferences.getBoolean("notification_enabled", false)
+        notifi.setOnCheckedChangeListener { _, isChecked ->
+            // حفظ حالة التبديل في SharedPreferences
+            sharedPreferences.edit().putBoolean("notification_enabled", isChecked).apply()
+
+            if (isChecked) {
+                // إذا تم تفعيل الـ Switch، قم بجدولة إرسال الإشعار يوميًا في الساعة 10 صباحًا
+                scheduleNotification()
+//                scheduleNotification()
+//                scheduleNotification2(10,1,"sss","ss")
+//                scheduleNotification2(10,2,"mmm","mmmm")
+            } else {
+                // إذا تم إيقاف الـ Switch، قم بإلغاء جدولة إرسال الإشعار
+                cancelNotification()
+            }
+        }
+
 
         initFonts()
         specifyFont()
@@ -231,6 +268,130 @@ class FragmentSetting : Fragment() {
         val editor = sp.edit()
         editor.putInt("font", fontIndex)
         editor.apply()
+    }
+
+    private fun scheduleNotification() {
+        // الحصول على مرجع لمدير المنبهات
+        val alarmManager = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        // إنشاء Intent لاستدعاء BroadcastReceiver عند وقت الإشعار للصباح
+        val amAlarmIntent = Intent(requireContext(), AlarmReceiverAM::class.java)
+        val amPendingIntent = PendingIntent.getBroadcast(requireContext(), 0, amAlarmIntent, PendingIntent.FLAG_IMMUTABLE)
+
+        // إنشاء Intent لاستدعاء BroadcastReceiver عند وقت الإشعار للمساء
+        val pmAlarmIntent = Intent(requireContext(), AlarmReceiverPM::class.java)
+        val pmPendingIntent = PendingIntent.getBroadcast(requireContext(), 0, pmAlarmIntent, PendingIntent.FLAG_IMMUTABLE)
+
+        // تحديد وقت الإشعار اليومي عند الساعة 8 صباحًا للصباح
+        val amCalendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 8)
+            set(Calendar.MINUTE, 1)
+            set(Calendar.SECOND, 1)
+            set(Calendar.MILLISECOND, 0)
+            if (System.currentTimeMillis() >= timeInMillis) {
+                add(Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+
+        // تحديد وقت الإشعار اليومي عند الساعة المناسبة للمساء
+        val pmCalendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 20/* وقت المساء */)
+            set(Calendar.MINUTE, 1)
+            set(Calendar.SECOND, 1)
+            set(Calendar.MILLISECOND, 0)
+            if (System.currentTimeMillis() >= timeInMillis) {
+                add(Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+
+        // جدولة استدعاء BroadcastReceiver عند الساعة 8 صباحًا يوميًا
+        alarmManager.setRepeating(
+            AlarmManager.RTC_WAKEUP,
+            amCalendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY,
+            amPendingIntent
+        )
+
+        // جدولة استدعاء BroadcastReceiver عند الساعة المناسبة للمساء يوميًا
+        alarmManager.setRepeating(
+            AlarmManager.RTC_WAKEUP,
+            pmCalendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY,
+            pmPendingIntent
+        )
+
+        Log.d("MainActivity", "تم جدولة الإشعار عند الساعة 8 صباحًا ووقت المساء يوميًا.")
+    }
+
+
+
+    private fun cancelNotification() {
+        // الحصول على مرجع لمدير المنبهات
+        val alarmManager =requireContext(). getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        // إنشاء Intent لاستدعاء BroadcastReceiver عند وقت الإشعار للصباح
+        val amAlarmIntent = Intent(requireContext(), AlarmReceiverAM::class.java)
+        val amPendingIntent = PendingIntent.getBroadcast(requireContext(), 0, amAlarmIntent, PendingIntent.FLAG_IMMUTABLE)
+
+        // إنشاء Intent لاستدعاء BroadcastReceiver عند وقت الإشعار للمساء
+        val pmAlarmIntent = Intent(requireContext(), AlarmReceiverPM::class.java)
+        val pmPendingIntent = PendingIntent.getBroadcast(requireContext(), 0, pmAlarmIntent, PendingIntent.FLAG_IMMUTABLE)
+
+        // إلغاء جدولة استدعاء BroadcastReceiver للصباح
+        alarmManager.cancel(amPendingIntent)
+
+        // إلغاء جدولة استدعاء BroadcastReceiver للمساء
+        alarmManager.cancel(pmPendingIntent)
+
+        Log.d("MainActivity", "تم إلغاء جدولة الإشعارين.")
+    }
+
+
+
+
+    private fun requestNotificationPermission() {
+        if (ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.VIBRATE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // لم يتم منح إذن الإشعارات، نقوم بطلبه
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(Manifest.permission.VIBRATE),
+                NOTIFICATION_PERMISSION_CODE
+            )
+        } else {
+            // تم منح إذن الإشعارات مسبقًا، نقوم بتفعيل الإشعارات
+            sharedPreferences.edit().putBoolean("notification_enabled", true).apply()
+            scheduleNotification()
+            scheduleNotification()
+//            scheduleNotification2(10,1,"sss","ss")
+//            scheduleNotification2(10,2,"mmm","mmmm")
+        }
+        Log.d("MainActivity", "تم طلب إذن الإشعارات.")
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == NOTIFICATION_PERMISSION_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // تم منح إذن الإشعارات، نقوم بتفعيل الإشعارات
+                sharedPreferences.edit().putBoolean("notification_enabled", true).apply()
+                scheduleNotification()
+                scheduleNotification()
+            } else {
+                // تم رفض إذن الإشعارات، نقوم بإلغاء جدولة الإشعار
+                notifi.isChecked = false
+                sharedPreferences.edit().putBoolean("notification_enabled", false).apply()
+                cancelNotification()
+            }
+        }
+        Log.d("MainActivity", "تم معالجة نتيجة طلب إذن الإشعارات.")
     }
 }
 
